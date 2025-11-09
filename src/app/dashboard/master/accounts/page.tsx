@@ -47,7 +47,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Plus } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import type { Account } from '@/lib/types';
@@ -58,6 +58,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function AccountRowSkeleton() {
   return (
@@ -78,6 +79,7 @@ export default function AccountsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,6 +166,23 @@ export default function AccountsPage() {
       }
   }
 
+  const renderActionButton = () => {
+    if (isMobile) {
+        return (
+            <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-20" onClick={() => openDialog('create')}>
+                <Plus className="h-6 w-6" />
+                <span className="sr-only">Add Account</span>
+            </Button>
+        );
+    }
+    return (
+        <Button onClick={() => openDialog('create')}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Account
+        </Button>
+    );
+  }
+
   return (
     <>
       <Card>
@@ -173,10 +192,7 @@ export default function AccountsPage() {
               <CardTitle>Master Accounts</CardTitle>
               <CardDescription>Manage your customer, bank, and expense accounts.</CardDescription>
             </div>
-            <Button onClick={() => openDialog('create')}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Account
-            </Button>
+            {!isMobile && renderActionButton()}
           </div>
         </CardHeader>
         <CardContent>
@@ -203,6 +219,8 @@ export default function AccountsPage() {
           </div>
         </CardFooter>
       </Card>
+
+      {isMobile && renderActionButton()}
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-md">

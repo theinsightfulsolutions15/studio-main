@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from "lucide-react";
 
 export type Animal = {
@@ -33,7 +34,7 @@ export type User = {
 export type FinancialRecord = {
   id: string;
   date: string;
-  recordType: 'Receipt' | 'Payment' | 'Expense' | 'Milk Record' | 'Bank Record' | 'Milk Sale';
+  recordType: 'Receipt' | 'Payment' | 'Milk Sale';
   category?: string;
   amount: number;
   description: string;
@@ -62,6 +63,7 @@ export type NavItem = {
   title: string;
   icon: LucideIcon;
   label?: string;
+  id?: string;
 };
 
 export type AnimalMovement = {
@@ -103,3 +105,21 @@ export type Account = {
 export type SystemStatus = {
     isMaintenanceMode: boolean;
 };
+
+export type SystemConfig = {
+    appLogo?: string;
+};
+
+export type SupportTicket = {
+    id: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    customerId?: string;
+    subject: string;
+    description: string;
+    submittedAt: any; // Firestore Timestamp
+    status: 'Open' | 'Closed';
+    closedAt?: any; // Firestore Timestamp
+};
+    

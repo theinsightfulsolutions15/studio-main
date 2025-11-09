@@ -65,6 +65,7 @@ import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlo
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 type StagedRecord = Omit<MilkRecord, 'id' | 'ownerId' | 'date' | 'time'> & { animalBreed: string };
@@ -92,6 +93,7 @@ export default function MilkRecordsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Production Dialog State
   const [isProductionDialogOpen, setIsProductionDialogOpen] = useState(false);
@@ -504,6 +506,42 @@ export default function MilkRecordsPage() {
 
   const isLoading = isLoadingAnimals || isLoadingProduction || isLoadingMovements || isLoadingSales;
 
+  const renderActionButtons = () => {
+    if (isMobile) {
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-20">
+                        <Plus className="h-6 w-6" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="end" className="w-56 mb-2">
+                    <DropdownMenuItem onSelect={openProductionDialog}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>Add Production</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openSaleDialog(null)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>Add Milk Sale</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+    }
+    return (
+        <div className="flex gap-2">
+            <Button onClick={openProductionDialog}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Production
+            </Button>
+            <Button onClick={() => openSaleDialog(null)} variant="secondary">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Milk Sale
+            </Button>
+        </div>
+    );
+  }
+
   return (
     <>
     <div className="space-y-6">
@@ -539,21 +577,13 @@ export default function MilkRecordsPage() {
 
         <Tabs defaultValue="production" className="w-full">
             <div className="flex justify-between items-center mb-4">
-                <TabsList className="grid grid-cols-2 w-[300px]">
+                <TabsList className="grid grid-cols-2 w-full sm:w-[300px]">
                     <TabsTrigger value="production">Production</TabsTrigger>
                     <TabsTrigger value="sales">Sales</TabsTrigger>
                 </TabsList>
-                 <div className="flex gap-2">
-                    <Button onClick={openProductionDialog}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Production
-                    </Button>
-                    <Button onClick={() => openSaleDialog(null)} variant="secondary">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Milk Sale
-                    </Button>
-                </div>
+                {!isMobile && renderActionButtons()}
             </div>
+            {isMobile && renderActionButtons()}
 
             <TabsContent value="production">
                 <Card>

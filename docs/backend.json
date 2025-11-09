@@ -296,6 +296,35 @@
         }
       },
       "required": ["isMaintenanceMode"]
+    },
+    "SystemConfig": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "SystemConfig",
+        "type": "object",
+        "description": "Represents global system configurations, such as branding.",
+        "properties": {
+            "appLogo": {
+                "type": "string",
+                "description": "A Base64 encoded data URL of the application logo."
+            }
+        }
+    },
+    "SupportTicket": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SupportTicket",
+      "type": "object",
+      "description": "Represents a support ticket submitted by a user.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the support ticket." },
+        "userId": { "type": "string", "description": "ID of the user who submitted the ticket." },
+        "userName": { "type": "string", "description": "Name of the user." },
+        "userEmail": { "type": "string", "format": "email", "description": "Email of the user." },
+        "subject": { "type": "string", "description": "The subject line of the ticket." },
+        "description": { "type": "string", "description": "The detailed description of the issue." },
+        "submittedAt": { "type": "string", "format": "date-time", "description": "Timestamp when the ticket was submitted." },
+        "status": { "type": "string", "enum": ["Open", "Closed"], "description": "The current status of the ticket." }
+      },
+      "required": ["id", "userId", "userName", "userEmail", "subject", "description", "submittedAt", "status"]
     }
   },
   "auth": {
@@ -411,6 +440,17 @@
             ]
         }
       },
+       {
+        "path": "/support_tickets/{ticketId}",
+        "definition": {
+          "entityName": "SupportTicket",
+          "schema": { "$ref": "#/backend/entities/SupportTicket" },
+          "description": "A top-level collection for all user-submitted support tickets.",
+          "params": [
+            { "name": "ticketId", "description": "The unique ID for the support ticket." }
+          ]
+        }
+      },
       {
         "path": "/roles_admin/{userId}",
         "definition": {
@@ -435,8 +475,17 @@
           "description": "A singleton document to store global system status, like maintenance mode. Publicly readable.",
           "params": []
         }
+      },
+      {
+        "path": "/system/config",
+        "definition": {
+            "entityName": "SystemConfig",
+            "schema": { "$ref": "#/backend/entities/SystemConfig" },
+            "description": "A singleton document for global app configurations like branding. Publicly readable.",
+            "params": []
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the GauRakshak application by adopting a user-centric model where each user's data (animals, movements, financials, etc.) is nested within their own document. This enhances data privacy and simplifies security rules by leveraging path-based ownership. Top-level collections like 'amc_renewals' and 'roles_admin' are maintained for global operations and administrative functions. This structure ensures that users can only access their own data, while admins have broader permissions, creating a secure and scalable architecture."
+    "reasoning": "The Firestore data structure is designed to support the GauRakshak application by adopting a user-centric model where each user's data (animals, movements, financials, etc.) is nested within their own document. This enhances data privacy and simplifies security rules by leveraging path-based ownership. Top-level collections like 'amc_renewals', 'roles_admin', and 'support_tickets' are maintained for global operations and administrative functions. This structure ensures that users can only access their own data, while admins have broader permissions, creating a secure and scalable architecture."
   }
 }

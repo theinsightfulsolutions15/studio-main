@@ -16,8 +16,10 @@ import {
   UserCheck,
   BookUser,
   BookCopy,
+  LifeBuoy,
+  Bug,
 } from 'lucide-react';
-import { doc } from 'firebase/firestore';
+import { doc, collection, query, where } from 'firebase/firestore';
 import {
   SidebarContent,
   SidebarMenu,
@@ -25,10 +27,12 @@ import {
   SidebarMenuButton,
   SidebarHeader,
   SidebarFooter,
+  SidebarMenuSkeleton,
+  SidebarMenuBadge,
 } from '@/components/ui/sidebar';
-import type { NavItem, User as AppUser } from '@/lib/types';
+import type { NavItem, User as AppUser, AmcRenewal, SupportTicket } from '@/lib/types';
 import Logo from './logo';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 
 const baseNavItems: NavItem[] = [
   { href: '/dashboard', title: 'Dashboard', icon: LayoutDashboard },
@@ -46,9 +50,16 @@ const masterNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
     { href: '/dashboard/users', title: 'Users', icon: Users },
-    { href: '/dashboard/user-approvals', title: 'User Approvals', icon: UserCheck },
-    { href: '/dashboard/amc', title: 'AMC Renewals', icon: ShieldCheck },
+    { href: '/dashboard/user-approvals', title: 'User Approvals', icon: UserCheck, id: 'user-approvals' },
+    { href: '/dashboard/amc', title: 'AMC Renewals', icon: ShieldCheck, id: 'amc-renewals' },
+    { href: '/dashboard/support-tickets', title: 'Support Tickets', icon: Bug, id: 'support-tickets' },
 ];
+
+const supportItem: NavItem = {
+    href: '/dashboard/support',
+    title: 'Support',
+    icon: LifeBuoy,
+};
 
 const settingsItem: NavItem = {
   href: '/dashboard/settings',
@@ -58,7 +69,7 @@ const settingsItem: NavItem = {
 
 export default function Nav() {
   const pathname = usePathname();
-  const { user: authUser } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const userDocRef = useMemoFirebase(() => {
@@ -66,35 +77,58 @@ export default function Nav() {
     return doc(firestore, 'users', authUser.uid);
   }, [authUser, firestore]);
 
-  const { data: currentUser, isLoading } = useDoc<AppUser>(userDocRef);
+  const { data: currentUser, isLoading: isCurrentUserLoading } = useDoc<AppUser>(userDocRef);
 
   const isAdmin = currentUser?.role === 'Admin';
+  
+  const pendingRenewalsQuery = useMemoFirebase(() => {
+    if (!isAdmin || !firestore) return null;
+    return query(collection(firestore, 'amc_renewals'), where('status', '==', 'Pending'));
+  }, [isAdmin, firestore]);
+  
+  const { data: pendingRenewals } = useCollection<AmcRenewal>(pendingRenewalsQuery);
+  const pendingRenewalsCount = pendingRenewals?.length ?? 0;
 
-  const navItems = isAdmin ? [...baseNavItems, ...masterNavItems, ...adminNavItems] : [...baseNavItems, ...masterNavItems];
+  const pendingUsersQuery = useMemoFirebase(() => {
+    if (!isAdmin || !firestore) return null;
+    return query(collection(firestore, 'users'), where('status', '==', 'Pending'));
+  }, [isAdmin, firestore]);
+  const { data: pendingUsers } = useCollection<AppUser>(pendingUsersQuery);
+  const pendingUsersCount = pendingUsers?.length ?? 0;
 
+  const openTicketsQuery = useMemoFirebase(() => {
+    if (!isAdmin || !firestore) return null;
+    return query(collection(firestore, 'support_tickets'), where('status', '==', 'Open'));
+  }, [isAdmin, firestore]);
+  const { data: openTickets } = useCollection<SupportTicket>(openTicketsQuery);
+  const openTicketsCount = openTickets?.length ?? 0;
+
+
+  const isLoading = isUserLoading || isCurrentUserLoading;
+
+  const navItems = isAdmin 
+    ? [...baseNavItems, ...masterNavItems, ...adminNavItems] 
+    : [...baseNavItems, ...masterNavItems];
 
   return (
     <>
-      <SidebarHeader>
+      <SidebarHeader className="items-center">
         <Logo />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {isLoading && Array.from({ length: 6 }).map((_, i) => (
+          {isLoading && Array.from({ length: 8 }).map((_, i) => (
              <SidebarMenuItem key={i}>
-                <SidebarMenuButton tooltip="Loading..." asChild>
-                    <div className="flex items-center gap-2 p-2">
-                        <div className="h-4 w-4 bg-muted rounded" />
-                        <div className="h-4 w-20 bg-muted rounded" />
-                    </div>
-                </SidebarMenuButton>
+                <div className="flex items-center gap-2 p-2 h-8 w-full">
+                    <SidebarMenuSkeleton showIcon />
+                </div>
              </SidebarMenuItem>
           ))}
           {!isLoading && navItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith(item.href)}
+                isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                 tooltip={item.title}
               >
                 <Link href={item.href}>
@@ -102,12 +136,33 @@ export default function Nav() {
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>
+              {item.id === 'amc-renewals' && pendingRenewalsCount > 0 && (
+                <SidebarMenuBadge>{pendingRenewalsCount}</SidebarMenuBadge>
+              )}
+              {item.id === 'user-approvals' && pendingUsersCount > 0 && (
+                <SidebarMenuBadge>{pendingUsersCount}</SidebarMenuBadge>
+              )}
+              {item.id === 'support-tickets' && openTicketsCount > 0 && (
+                <SidebarMenuBadge>{openTicketsCount}</SidebarMenuBadge>
+              )}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
           <SidebarMenu>
+             <SidebarMenuItem>
+                <SidebarMenuButton
+                    asChild
+                    isActive={pathname === supportItem.href}
+                    tooltip={supportItem.title}
+                >
+                    <Link href={supportItem.href}>
+                        <supportItem.icon />
+                        <span>{supportItem.title}</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                     asChild

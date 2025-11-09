@@ -29,7 +29,7 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Download, Camera, Upload, DatabaseBackup, Power } from 'lucide-react';
+import { Download, Camera, Upload, DatabaseBackup, Power, Image as ImageIcon } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
 import { doc, collection, getDocs, query, writeBatch, documentId, where, setDoc } from 'firebase/firestore';
@@ -39,12 +39,120 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import type { User as AppUser, Animal, AnimalMovement, FinancialRecord, MilkRecord, Account } from '@/lib/types';
+import type { User as AppUser, Animal, AnimalMovement, FinancialRecord, MilkRecord, Account, SystemConfig } from '@/lib/types';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
+
+
+function BrandingSettings() {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [newLogo, setNewLogo] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const logoUploadRef = useRef<HTMLInputElement>(null);
+
+    const configDocRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'system', 'config');
+    }, [firestore]);
+
+    const { data: systemConfig, isLoading: isLoadingConfig } = useDoc<SystemConfig>(configDocRef);
+
+    const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (file.size > 512 * 1024) { // 512KB limit
+                toast({
+                    variant: 'destructive',
+                    title: 'File Too Large',
+                    description: 'Please upload an image smaller than 512KB.'
+                });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUri = e.target?.result as string;
+                setNewLogo(dataUri);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSaveLogo = async () => {
+        if (!configDocRef || !newLogo) return;
+        setIsSaving(true);
+        try {
+            await setDocumentNonBlocking(configDocRef, { appLogo: newLogo }, { merge: true });
+            toast({
+                title: 'Success',
+                description: 'Application logo has been updated.'
+            });
+            setNewLogo(null);
+        } catch (error) {
+            console.error("Error saving logo:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to save the new logo.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const currentLogoSrc = newLogo || systemConfig?.appLogo;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Branding</CardTitle>
+                <CardDescription>Customize the application's logo.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label>Application Logo</Label>
+                    <div className="flex flex-col sm:flex-row items-center gap-6">
+                        <div className="w-32 h-32 rounded-lg border bg-muted flex items-center justify-center p-2">
+                            {isLoadingConfig ? <Skeleton className="h-full w-full" /> :
+                                currentLogoSrc ? (
+                                    <Image src={currentLogoSrc} alt="Current Logo" width={100} height={100} className="object-contain h-full w-full" />
+                                ) : (
+                                    <div className="text-center text-muted-foreground text-sm">No Logo Set</div>
+                                )
+                            }
+                        </div>
+                        <div className="flex-1 space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Upload a new logo. For best results, use a square image (PNG or JPG) under 512KB.
+                            </p>
+                            <input
+                                type="file"
+                                ref={logoUploadRef}
+                                onChange={handleLogoUpload}
+                                className="hidden"
+                                accept="image/png, image/jpeg"
+                            />
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={() => logoUploadRef.current?.click()}>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Upload Logo
+                                </Button>
+                                {newLogo && (
+                                    <Button onClick={handleSaveLogo} disabled={isSaving}>
+                                        {isSaving ? <Spinner /> : null}
+                                        Save Logo
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 
 export default function SettingsPage() {
@@ -202,7 +310,7 @@ export default function SettingsPage() {
     return user_data;
   };
 
-  const handleBackup = async () => {
+ const handleBackup = async () => {
     if (!firestore || !user) {
         toast({ variant: 'destructive', title: 'Backup Failed', description: 'Could not create backup.' });
         return;
@@ -210,33 +318,57 @@ export default function SettingsPage() {
     setIsBackingUp(true);
 
     try {
-        const workbook = XLSX.utils.book_new();
-        
         if (isAdmin) {
+            const zip = new JSZip();
+            const fullBackupWb = XLSX.utils.book_new();
+
             const usersSnapshot = await getDocs(collection(firestore, 'users'));
             const allUsersToBackup = usersSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as AppUser));
 
             const cleanedUsers = cleanDataForExport(allUsersToBackup, ['photoURL']);
             const usersSheet = XLSX.utils.json_to_sheet(cleanedUsers);
-            XLSX.utils.book_append_sheet(workbook, usersSheet, 'All User Profiles');
+            XLSX.utils.book_append_sheet(fullBackupWb, usersSheet, 'All_User_Profiles');
 
             for (const u of allUsersToBackup) {
+                const userWb = XLSX.utils.book_new();
                 const userDataToBackup = await fetchDataForUser(u.id);
+                let userHasData = false;
+
                 for (const [colName, data] of Object.entries(userDataToBackup)) {
-                    if(data.length > 0) {
-                      const sheetName = `${u.customerId || u.id.substring(0,5)}_${colName}`.substring(0, 31);
-                      let cleanedData = data;
-                      if(colName === 'animals'){
-                          cleanedData = cleanDataForExport(data, ['imageUrl']);
-                      }
-                      const sheet = XLSX.utils.json_to_sheet(cleanedData);
-                      XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
+                    if (data.length > 0) {
+                        userHasData = true;
+                        let cleanedData = data;
+                        if (colName === 'animals') {
+                            cleanedData = cleanDataForExport(data, ['imageUrl']);
+                        }
+                        const sheet = XLSX.utils.json_to_sheet(cleanedData);
+                        // Add to full backup
+                        const safeUserName = (u.name || 'user').replace(/[^a-zA-Z0-9]/g, '_');
+                        const safeCustomerId = (u.customerId || u.id.substring(0,5)).replace(/[^a-zA-Z0-9]/g, '_');
+                        const fullSheetName = `${safeUserName}_${safeCustomerId}_${colName}`.substring(0, 31);
+                        XLSX.utils.book_append_sheet(fullBackupWb, sheet, fullSheetName);
+
+                        // Add to individual user backup
+                        XLSX.utils.book_append_sheet(userWb, XLSX.utils.json_to_sheet(cleanedData), colName);
                     }
                 }
+                 if(userHasData) {
+                    const userWbOut = XLSX.write(userWb, { bookType: 'xlsx', type: 'array' });
+                    const safeUserName = (u.name || 'user').replace(/[^a-zA-Z0-9]/g, '_');
+                    const safeCustomerId = (u.customerId || 'no_id').replace(/[^a-zA-Z0-9]/g, '_');
+                    zip.file(`user_backups/${safeUserName}_${safeCustomerId}.xlsx`, userWbOut);
+                }
             }
-             XLSX.writeFile(workbook, 'GauRakshak_Full_Backup.xlsx');
+            
+            const fullWbOut = XLSX.write(fullBackupWb, { bookType: 'xlsx', type: 'array' });
+            zip.file('NANDI_NET_Full_Backup.xlsx', fullWbOut);
 
-        } else {
+            zip.generateAsync({ type: 'blob' }).then(content => {
+                saveAs(content, `NANDI_NET_Backup_Collection_${new Date().toISOString().split('T')[0]}.zip`);
+            });
+
+        } else { // Regular user backup
+            const workbook = XLSX.utils.book_new();
             const userDataToBackup = await fetchDataForUser(user.uid);
             
             const cleanedAnimals = cleanDataForExport(userDataToBackup.animals, ['imageUrl']);
@@ -247,10 +379,10 @@ export default function SettingsPage() {
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(userDataToBackup.milk_records), 'Milk_Records');
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(userDataToBackup.accounts), 'Accounts');
 
-            XLSX.writeFile(workbook, `GauRakshak_MyData_Backup.xlsx`);
+            XLSX.writeFile(workbook, `NANDI_NET_MyData_Backup.xlsx`);
         }
 
-        toast({ title: "Backup Successful", description: "Your data has been exported to an Excel file." });
+        toast({ title: "Backup Successful", description: "Your data has been exported." });
 
     } catch (error) {
         console.error("Backup error:", error);
@@ -293,25 +425,26 @@ export default function SettingsPage() {
             try {
                 const data = e.target?.result;
                 const workbook = XLSX.read(data, { type: 'array' });
-                const batch = writeBatch(firestore);
     
                 if (restoreMode === 'full') {
+                    const batch = writeBatch(firestore);
                     // Full Restore Logic: Iterate through all sheets
                     for (const sheetName of workbook.SheetNames) {
                         const worksheet = workbook.Sheets[sheetName];
                         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
     
-                        if (sheetName === 'All User Profiles') {
+                        if (sheetName === 'All_User_Profiles') {
                             for (const record of jsonData) {
                                 const docRef = doc(firestore, 'users', record.id);
                                 batch.set(docRef, record);
                             }
                         } else {
-                            const [userIdentifier, ...collectionParts] = sheetName.split('_');
-                            const collectionName = collectionParts.join('_');
-                            
-                            // Find the user by customerId or a substring of their UID
-                            const user = allUsers?.find(u => u.customerId === userIdentifier || u.id.substring(0, 5) === userIdentifier);
+                            const parts = sheetName.split('_');
+                            if (parts.length < 3) continue; // Skip sheets that don't match the user_customerid_collection format
+                            const collectionName = parts[parts.length - 1];
+                            const customerId = parts[parts.length - 2];
+
+                            const user = allUsers?.find(u => u.customerId === customerId);
     
                             if (user) {
                                 for (const record of jsonData) {
@@ -323,20 +456,24 @@ export default function SettingsPage() {
                             }
                         }
                     }
+                    await batch.commit();
                     toast({ title: 'Full Restore Successful', description: 'All data has been restored from the backup.' });
+
                 } else if (restoreMode === 'user' && selectedUserId) {
+                    const batch = writeBatch(firestore);
                     // User-wise Restore Logic
                     const selectedUser = allUsers?.find(u => u.id === selectedUserId);
-                    if (!selectedUser) {
-                        throw new Error('Selected user not found.');
+                    if (!selectedUser || !selectedUser.customerId) {
+                        throw new Error('Selected user not found or does not have a Customer ID.');
                     }
-                    const userIdentifier = selectedUser.customerId || selectedUser.id.substring(0, 5);
-    
+                    const safeUserName = (selectedUser.name || 'user').replace(/[^a-zA-Z0-9]/g, '_');
+                    const safeCustomerId = selectedUser.customerId.replace(/[^a-zA-Z0-9]/g, '_');
+
                     // Iterate through sheets and only process those belonging to the selected user
                     for (const sheetName of workbook.SheetNames) {
-                        if (sheetName.startsWith(userIdentifier)) {
-                            const [, ...collectionParts] = sheetName.split('_');
-                            const collectionName = collectionParts.join('_');
+                        const sheetNameIdentifier = `${safeUserName}_${safeCustomerId}_`;
+                        if (sheetName.startsWith(sheetNameIdentifier)) {
+                            const collectionName = sheetName.substring(sheetNameIdentifier.length);
                             const worksheet = workbook.Sheets[sheetName];
                             const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
     
@@ -348,10 +485,9 @@ export default function SettingsPage() {
                             }
                         }
                     }
+                    await batch.commit();
                     toast({ title: 'User Restore Successful', description: `Data for ${selectedUser.name} has been restored.` });
                 }
-    
-                await batch.commit();
     
             } catch (error) {
                 console.error("Restore error:", error);
@@ -463,6 +599,8 @@ export default function SettingsPage() {
             </CardContent>
         </Card>
 
+        {isAdmin && <BrandingSettings />}
+
         <Card>
             <CardHeader>
                 <CardTitle>Data Backup</CardTitle>
@@ -477,7 +615,7 @@ export default function SettingsPage() {
                             <p className="font-medium">
                                 {isAdmin ? 'Create a Full System Backup' : 'Create a New Backup'}
                             </p>
-                            <p className="text-sm text-muted-foreground">This will generate an Excel file with all relevant data.</p>
+                            <p className="text-sm text-muted-foreground">{isAdmin ? 'This will generate a ZIP file containing a full backup and individual user files.' : 'This will generate an Excel file with all your relevant data.'}</p>
                         </div>
                         <Button variant="outline" onClick={handleBackup} disabled={isBackingUp || isLoading}>
                             <Download className="mr-2 h-4 w-4" />
@@ -636,5 +774,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    

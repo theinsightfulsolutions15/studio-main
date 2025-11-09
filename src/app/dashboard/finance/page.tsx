@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { PlusCircle, ChevronsUpDown, Check, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, ChevronsUpDown, Check, MoreHorizontal, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, writeBatch, doc } from 'firebase/firestore';
@@ -54,6 +54,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '
 import { cn } from '@/lib/utils';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 function TransactionRowSkeleton() {
@@ -83,7 +84,7 @@ function TransactionRowSkeleton() {
 
 type TransactionFormData = {
     date: Date | undefined;
-    recordType: 'Receipt' | 'Payment' | 'Transfer' | 'Expense' | 'Bank Record' | 'Milk Record' | 'Milk Sale';
+    recordType: 'Receipt' | 'Payment' | 'Transfer';
     fromAccount: string | null;
     toAccount: string | null;
     amount: number | '';
@@ -103,6 +104,7 @@ export default function FinancePage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Omit<FinancialRecord, 'id' | 'ownerId'>>(initialFormState);
@@ -135,7 +137,6 @@ export default function FinancePage() {
   
   const receipts = financialData?.filter((t) => t.recordType === 'Receipt');
   const payments = financialData?.filter((t) => t.recordType === 'Payment');
-  const expenses = financialData?.filter((t) => t.recordType === 'Expense');
   const milkSales = financialData?.filter((t) => t.recordType === 'Milk Sale');
 
   const customerAndBankAccounts = useMemo(() => accounts?.filter(a => a.type === 'Customer' || a.type === 'Bank'), [accounts]);
@@ -287,6 +288,23 @@ export default function FinancePage() {
         </div>
     );
   };
+  
+  const renderActionButton = () => {
+    if (isMobile) {
+        return (
+            <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-20" onClick={() => handleOpenDialog('create')}>
+                <Plus className="h-6 w-6" />
+                <span className="sr-only">Add Transaction</span>
+            </Button>
+        );
+    }
+    return (
+        <Button onClick={() => handleOpenDialog('create')}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Transaction
+        </Button>
+    );
+  }
 
 
   return (
@@ -297,23 +315,18 @@ export default function FinancePage() {
           <div>
             <CardTitle>Financial Records</CardTitle>
             <CardDescription>
-              Track all receipts, payments, and expenses.
+              Track all receipts and payments.
             </CardDescription>
           </div>
-          <Button onClick={() => handleOpenDialog('create')}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Transaction
-          </Button>
+          {!isMobile && renderActionButton()}
         </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="receipts">Receipts</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            {/* <TabsTrigger value="milk-sales">Milk Sales</TabsTrigger> */}
           </TabsList>
           <TabsContent value="all" className="mt-4">
             <TransactionsTable data={financialData} isLoading={isLoadingTransactions} accounts={accounts} onEdit={(rec) => handleOpenDialog('edit', rec)} onDelete={openDeleteDialog} />
@@ -324,9 +337,6 @@ export default function FinancePage() {
           <TabsContent value="payments" className="mt-4">
             <TransactionsTable data={payments} isLoading={isLoadingTransactions} accounts={accounts} onEdit={(rec) => handleOpenDialog('edit', rec)} onDelete={openDeleteDialog}/>
           </TabsContent>
-          <TabsContent value="expenses" className="mt-4">
-            <TransactionsTable data={expenses} isLoading={isLoadingTransactions} accounts={accounts} onEdit={(rec) => handleOpenDialog('edit', rec)} onDelete={openDeleteDialog}/>
-          </TabsContent>
         </Tabs>
       </CardContent>
       <CardFooter>
@@ -336,6 +346,8 @@ export default function FinancePage() {
         </div>
       </CardFooter>
     </Card>
+    
+    {isMobile && renderActionButton()}
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-lg">
@@ -455,11 +467,11 @@ function TransactionsTable({
                 variant={
                   record.recordType === 'Receipt'
                     ? 'secondary'
-                    : record.recordType === 'Expense' || record.recordType === 'Payment'
+                    : record.recordType === 'Payment'
                     ? 'destructive'
                     : 'outline'
                 }
-                className={`bg-opacity-80 ${record.recordType === 'Receipt' ? 'bg-green-100 text-green-800' : record.recordType === 'Payment' || record.recordType === 'Expense' ? 'bg-red-100 text-red-800' : ''}`}
+                className={`bg-opacity-80 ${record.recordType === 'Receipt' ? 'bg-green-100 text-green-800' : record.recordType === 'Payment' ? 'bg-red-100 text-red-800' : ''}`}
               >
                 {record.recordType}
               </Badge>
@@ -493,3 +505,7 @@ function TransactionsTable({
     </Table>
   );
 }
+
+    
+
+    

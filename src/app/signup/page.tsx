@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import Logo from "@/components/logo";
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
@@ -38,6 +38,8 @@ export default function SignupPage() {
 
       const isAdmin = email.toLowerCase() === 'theinsightfulsolutions@gmail.com';
       
+      const batch = writeBatch(firestore);
+
       // 2. Create user document
       const userRef = doc(firestore, 'users', user.uid);
       const userData = {
@@ -52,13 +54,15 @@ export default function SignupPage() {
         customerId: isAdmin ? 'G-001' : '', 
         validityDate: isAdmin ? '2099-12-31' : '',
       };
-      await setDoc(userRef, userData);
+      batch.set(userRef, userData);
 
       // 3. Create admin role if applicable
       if (isAdmin) {
         const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
-        await setDoc(adminRoleRef, { uid: user.uid });
+        batch.set(adminRoleRef, { uid: user.uid, role: "Admin" });
       }
+      
+      await batch.commit();
       
       // 4. Show appropriate toast message and redirect
       if (isAdmin) {

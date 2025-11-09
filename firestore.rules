@@ -26,22 +26,36 @@ service cloud.firestore {
     }
     
     /**
-     * Helper function to check if the user's account is active and not expired.
+     * Helper function to get the user's document data.
+     */
+    function getUserData() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    /**
+     * Helper function to check if the user's account is active.
+     * It checks the status and validity date.
      */
     function isAccountActive() {
-        let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-        if (userDoc.status == 'Expired') {
+        let userDoc = getUserData();
+
+        // Deny if status is explicitly Expired or Inactive
+        if (userDoc.status == 'Expired' || userDoc.status == 'Inactive') {
           return false;
         }
-        if (!('validityDate' in userDoc) || userDoc.validityDate == '') {
-            return userDoc.status == 'Active'; // For users without a validity date, just check status
+        
+        // If status is not Expired/Inactive, and there is no validity date, trust the status.
+        if (!('validityDate' in userDoc) || userDoc.validityDate == null || userDoc.validityDate == '') {
+            return userDoc.status == 'Active'; 
         }
-        // Compare the validityDate string with the current time.
+        
+        // If there is a validity date, check it against the current time.
         let validityMillis = timestamp.date(
           int(userDoc.validityDate.split('-')[0]),
           int(userDoc.validityDate.split('-')[1]),
           int(userDoc.validityDate.split('-')[2])
         ).toMillis();
+        
         return validityMillis >= request.time.toMillis() && userDoc.status == 'Active';
     }
 
@@ -49,11 +63,18 @@ service cloud.firestore {
      * Rules for user profiles and their nested data.
      */
     match /users/{userId} {
-      // Allow a user to read their own profile. Admins can read any profile.
+      // Allow a user to read their own profile, even if expired, to see the renewal notice.
+      // Admins can read any profile.
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin(); // Users can only list their own document
-      // Only active users or admins can update/delete profiles.
-      allow update, delete: if (isAdmin() || isOwner(userId)) && isAccountActive();
+      
+      // Allow user to update their own profile (e.g., name, photo) even if expired.
+      // Admins can update any profile.
+      allow update: if isOwner(userId) || isAdmin();
+
+      // Only admins can delete profiles. Users cannot delete their own profile.
+      allow delete: if isAdmin();
+      
       // Any signed-in user can create their own profile during signup.
       allow create: if isSignedIn();
 
@@ -100,7 +121,19 @@ service cloud.firestore {
       // Admins can read, list, update, or delete renewal requests.
       allow read, list, update, delete: if isAdmin();
     }
-
+    
+     /**
+     * Rules for support tickets (top-level collection).
+     */
+    match /support_tickets/{ticketId} {
+      // User can create their own ticket
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // User can read their own tickets. Admins can read all tickets.
+      allow get, list: if (isSignedIn() && request.query.where.field == 'userId' && request.query.where.value == request.auth.uid) || isAdmin();
+      // Only admins can update (e.g., close) or delete tickets.
+      allow update, delete: if isAdmin();
+    }
+    
     /**
      * Rules for admin roles collection.
      */

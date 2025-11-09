@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, ChevronsUpDown, Check, Search, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, ChevronsUpDown, Check, Search, Trash2, Plus } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -61,6 +61,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 function MovementRowSkeleton() {
@@ -142,6 +143,7 @@ export default function MovementPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
@@ -289,6 +291,24 @@ export default function MovementPage() {
   };
 
   const isLoading = isLoadingAll || isLoadingAnimals;
+  
+  const renderActionButton = () => {
+    if (isMobile) {
+        return (
+            <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-20" onClick={() => openDialog('create')}>
+                <Plus className="h-6 w-6" />
+                <span className="sr-only">Add Movement</span>
+            </Button>
+        );
+    }
+    return (
+        <Button onClick={() => openDialog('create')}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Movement
+        </Button>
+    );
+  }
+
 
   return (
     <>
@@ -309,10 +329,7 @@ export default function MovementPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button onClick={() => openDialog('create')}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Movement
-                </Button>
+                {!isMobile && renderActionButton()}
             </div>
         </div>
       </CardHeader>
@@ -340,6 +357,8 @@ export default function MovementPage() {
         </div>
       </CardFooter>
     </Card>
+    
+    {isMobile && renderActionButton()}
 
     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-lg">
@@ -457,5 +476,3 @@ export default function MovementPage() {
     </>
   );
 }
-
-    

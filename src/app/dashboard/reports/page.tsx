@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 declare module 'jspdf' {
@@ -1096,13 +1097,16 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="animal-registry">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full md:w-auto">
-            <TabsTrigger value="animal-registry">Animal Registry</TabsTrigger>
-            <TabsTrigger value="movement-history">Movement History</TabsTrigger>
-            <TabsTrigger value="daily-summary">Daily Summary</TabsTrigger>
-            <TabsTrigger value="cross-tab">Cross-Tab Summary</TabsTrigger>
-            <TabsTrigger value="detailed-report">Detailed Report</TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="inline-flex w-max">
+                <TabsTrigger value="animal-registry">Animal Registry</TabsTrigger>
+                <TabsTrigger value="movement-history">Movement History</TabsTrigger>
+                <TabsTrigger value="daily-summary">Daily Summary</TabsTrigger>
+                <TabsTrigger value="cross-tab">Cross-Tab Summary</TabsTrigger>
+                <TabsTrigger value="detailed-report">Detailed Report</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TabsContent value="animal-registry" className="mt-4">
             <AnimalRegistryReport />

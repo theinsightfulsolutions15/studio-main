@@ -81,7 +81,7 @@ export default function Header() {
 
   const displayName = userData?.name || user?.displayName;
   const photoURL = userData?.photoURL || user?.photoURL;
-  const fallback = displayName ? displayName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase();
+  const fallback = displayName ? displayName.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || '?');
 
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-card px-4 md:px-6">
@@ -96,7 +96,7 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar>
-                <AvatarImage src={photoURL || `https://i.pravatar.cc/150?u=${user?.email}`} alt={displayName || 'User'} />
+                <AvatarImage src={photoURL || undefined} alt={displayName || 'User'} />
                 <AvatarFallback>{fallback}</AvatarFallback>
               </Avatar>
               <span className="sr-only">Toggle user menu</span>
@@ -106,7 +106,6 @@ export default function Header() {
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild><Link href="/dashboard/settings">Settings</Link></DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>

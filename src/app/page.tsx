@@ -72,7 +72,7 @@ export default function LoginPage() {
             setIsVerifying(false);
         });
     }
-  }, [user, isUserLoading, auth, firestore, router]);
+  }, [user, isUserLoading, auth, firestore, router, toast]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,15 +85,17 @@ export default function LoginPage() {
         return;
     }
     setIsVerifying(true); // Show loading state immediately
-    initiateEmailSignIn(auth, email, password);
+    initiateEmailSignIn(auth, email, password, () => {
+        setIsVerifying(false); // On error, stop verifying
+    });
   };
 
   if (isVerifying) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-lg font-semibold">GauRakshak</p>
-          <p className="text-muted-foreground">Loading, please wait...</p>
+          <Logo />
+          <p className="text-muted-foreground mt-2">Loading, please wait...</p>
         </div>
       </div>
     );
@@ -119,7 +121,7 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline">
+                  <Link href="/forgot-password" className="ml-auto inline-block text-sm underline">
                     Forgot your password?
                   </Link>
                 </div>
