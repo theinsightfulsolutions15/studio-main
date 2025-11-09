@@ -1,0 +1,34 @@
+{
+  "placeholderImages": [
+    {
+      "id": "cow1",
+      "description": "A healthy brown cow in a field.",
+      "imageUrl": "https://images.unsplash.com/photo-1719251871284-5ff3bdc522a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxicm93biUyMGNvd3xlbnwwfHx8fDE3NjIxNTkzNDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "brown cow"
+    },
+    {
+      "id": "cow2",
+      "description": "A black and white buffalo.",
+      "imageUrl": "https://images.unsplash.com/photo-1638604023774-e25b6805cf70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxibGFjayUyMGJ1ZmZhbG98ZW58MHx8fHwxNzYyMTY4NDEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black buffalo"
+    },
+    {
+      "id": "cow3",
+      "description": "A calf standing in straw.",
+      "imageUrl": "https://images.unsplash.com/photo-1653915052362-3d636d26824a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx5b3VuZyUyMGNhbGZ8ZW58MHx8fHwxNzYyMTY4NDEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "young calf"
+    },
+    {
+      "id": "cow4",
+      "description": "A white cow with horns.",
+      "imageUrl": "https://images.unsplash.com/photo-1598122739917-955530772a56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d2hpdGUlMjBjb3d8ZW58MHx8fHwxNzYyMTY4NDEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white cow"
+    },
+    {
+      "id": "cow5",
+      "description": "A close-up of a buffalo's face.",
+      "imageUrl": "https://images.unsplash.com/photo-1501031170107-cfd33f0cbdcc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxidWZmYWxvJTIwZmFjZXxlbnwwfHx8fDE3NjIxNjg0MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "buffalo face"
+    }
+  ]
+}

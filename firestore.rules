@@ -1,0 +1,125 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Helper function to determine if a user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Helper function to determine if the request is made by the owner of the document.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * Helper function to determine if the user has an admin role.
+     * This is more reliable than exists() as it checks for the actual document.
+     */
+    function isAdmin() {
+      return get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) != null;
+    }
+    
+    /**
+     * Helper function to check if the user's account is active and not expired.
+     */
+    function isAccountActive() {
+        let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        if (userDoc.status == 'Expired') {
+          return false;
+        }
+        if (!('validityDate' in userDoc) || userDoc.validityDate == '') {
+            return userDoc.status == 'Active'; // For users without a validity date, just check status
+        }
+        // Compare the validityDate string with the current time.
+        let validityMillis = timestamp.date(
+          int(userDoc.validityDate.split('-')[0]),
+          int(userDoc.validityDate.split('-')[1]),
+          int(userDoc.validityDate.split('-')[2])
+        ).toMillis();
+        return validityMillis >= request.time.toMillis() && userDoc.status == 'Active';
+    }
+
+    /**
+     * Rules for user profiles and their nested data.
+     */
+    match /users/{userId} {
+      // Allow a user to read their own profile. Admins can read any profile.
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin(); // Users can only list their own document
+      // Only active users or admins can update/delete profiles.
+      allow update, delete: if (isAdmin() || isOwner(userId)) && isAccountActive();
+      // Any signed-in user can create their own profile during signup.
+      allow create: if isSignedIn();
+
+      /**
+       * Rules for other nested collections that REQUIRE an active account.
+       */
+       match /animals/{animalId} {
+        allow read, write: if (isOwner(userId) || isAdmin()) && isAccountActive();
+      }
+      match /movements/{movementId} {
+        allow read, write: if (isOwner(userId) || isAdmin()) && isAccountActive();
+      }
+      match /financial_records/{financialRecordId} {
+        allow read, write: if (isOwner(userId) || isAdmin()) && isAccountActive();
+      }
+      match /milk_records/{milkRecordId} {
+        allow read, write: if (isOwner(userId) || isAdmin()) && isAccountActive();
+      }
+      match /reports/{reportId} {
+         allow read, write: if (isOwner(userId) || isAdmin()) && isAccountActive();
+       }
+      match /accounts/{accountId} {
+        allow read, write: if (isOwner(userId) || isAdmin()) && isAccountActive();
+      }
+    }
+    
+    // Admins can perform collection group queries on these collections
+    match /{path=**}/animals/{animalId} {
+      allow get, list: if isAdmin();
+    }
+    match /{path=**}/milk_records/{milkRecordId} {
+      allow get, list: if isAdmin();
+    }
+     match /{path=**}/financial_records/{financialRecordId} {
+      allow get, list: if isAdmin();
+    }
+
+    /**
+     * Rules for AMC renewal requests (top-level collection).
+     */
+    match /amc_renewals/{renewalId} {
+      // Users can create their own renewal requests, even if their account is expired.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Admins can read, list, update, or delete renewal requests.
+      allow read, list, update, delete: if isAdmin();
+    }
+
+    /**
+     * Rules for admin roles collection.
+     */
+    match /roles_admin/{userId} {
+      // Only admins can read, create, or update roles.
+      allow get, write: if isAdmin();
+      // Nobody can list all admin roles for security.
+      allow list, delete: if false;
+    }
+
+    /**
+     * Rules for system status (e.g., maintenance mode).
+     * This document should be publicly readable so the app can check for maintenance
+     * mode before a user is authenticated or their status is verified.
+     */
+    match /system/{docId} {
+      allow get, list: if true;
+      // Only admins can change system status.
+      allow write: if isAdmin();
+    }
+  }
+}

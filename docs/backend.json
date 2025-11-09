@@ -1,0 +1,442 @@
+
+{
+  "entities": {
+    "GaushalaProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GaushalaProfile",
+      "type": "object",
+      "description": "Represents the central profile information for the Gaushala.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The official name of the Gaushala."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the Gaushala."
+        }
+      },
+      "required": ["name", "address"]
+    },
+    "Animal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Animal",
+      "type": "object",
+      "description": "Represents an animal (Cow or Buffalo) in the Gaushala.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Animal entity."
+        },
+        "type": {
+            "type": "string",
+            "description": "The type of animal (e.g., COWS)."
+        },
+        "govtTagNo": {
+          "type": "string",
+          "description": "The official government tag number assigned to the animal."
+        },
+        "breed": {
+          "type": "string",
+          "description": "The breed of the animal (e.g., Jersey, Murrah)."
+        },
+        "color": {
+          "type": "string",
+          "description": "The color of the animal's coat."
+        },
+        "gender": {
+            "type": "string",
+            "enum": ["Male", "Female"],
+            "description": "The gender of the animal."
+        },
+        "yearOfBirth": {
+            "type": "number",
+            "description": "The birth year of the animal."
+        },
+        "healthStatus": {
+          "type": "string",
+          "description": "The current health status of the animal (e.g., Healthy, Sick)."
+        },
+        "tagColor": {
+          "type": "string",
+          "description": "The color of the animal's tag."
+        },
+        "identificationMark": {
+            "type": "string",
+            "description": "Any unique identification mark on the animal."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The ID of the user who owns this record."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL or path to the image of the animal.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "govtTagNo",
+        "breed",
+        "color",
+        "gender",
+        "yearOfBirth",
+        "healthStatus",
+        "tagColor",
+        "ownerId"
+      ]
+    },
+    "AnimalMovement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnimalMovement",
+      "type": "object",
+      "description": "Records an entry or exit event for an animal.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the movement record." },
+        "animalId": { "type": "string", "description": "ID of the animal being moved." },
+        "type": { "type": "string", "enum": ["Entry", "Exit"], "description": "The type of movement." },
+        "date": { "type": "string", "format": "date-time", "description": "The date of the movement." },
+        "reason": { "type": "string", "description": "The reason for the movement (e.g., 'Rescued', 'Adopted', 'Deceased')." },
+        "ownerId": { "type": "string", "description": "The ID of the user who recorded this movement." }
+      },
+      "required": ["id", "animalId", "type", "date", "reason", "ownerId"]
+    },
+    "FinancialRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FinancialRecord",
+      "type": "object",
+      "description": "Represents a financial transaction record.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FinancialRecord entity."
+        },
+        "recordType": {
+          "type": "string",
+          "description": "The type of financial record (e.g., Receipt, Payment, Expense, Milk Record, Bank Record)."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the financial transaction.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the financial transaction."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the financial transaction."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The ID of the user who owns this record."
+        }
+      },
+      "required": [
+        "id",
+        "recordType",
+        "date",
+        "amount",
+        "ownerId"
+      ]
+    },
+    "MilkRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MilkRecord",
+      "type": "object",
+      "description": "Represents a milk production record for an animal.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the milk record." },
+        "animalId": { "type": "string", "description": "ID of the animal that produced the milk." },
+        "animalTag": { "type": "string", "description": "Government tag number of the animal." },
+        "date": { "type": "string", "format": "date", "description": "Date of the milking." },
+        "quantity": { "type": "number", "description": "Quantity of milk produced in liters." },
+        "time": { "type": "string", "enum": ["Morning", "Evening"], "description": "Milking session." },
+        "ownerId": { "type": "string", "description": "The ID of the user who recorded this." }
+      },
+      "required": ["id", "animalId", "animalTag", "date", "quantity", "time", "ownerId"]
+    },
+     "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a generated report.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the report." },
+        "generatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of report generation." },
+        "type": { "type": "string", "description": "Type of the report (e.g., 'Financial', 'Animal Health')." },
+        "data": { "type": "object", "description": "The JSON data of the report." },
+        "ownerId": { "type": "string", "description": "The ID of the user who generated this report." }
+      },
+      "required": ["id", "generatedAt", "type", "data", "ownerId"]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user (e.g., Admin, User)."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the user account is active."
+        },
+        "address": {
+          "type": "string",
+          "description": "The user's address."
+        },
+        "mobileNo": {
+          "type": "string",
+          "description": "The user's mobile phone number."
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email",
+        "role",
+        "isActive"
+      ]
+    },
+    "AmcDetail": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AmcDetail",
+      "type": "object",
+      "description": "Represents the Annual Maintenance Contract (AMC) details.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AmcDetail entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N AmcDetail)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the AMC.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the AMC.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the AMC."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "startDate",
+        "endDate"
+      ]
+    },
+    "AmcRenewal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AmcRenewal",
+      "type": "object",
+      "description": "Represents a user-submitted request for AMC renewal.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the renewal request." },
+        "userId": { "type": "string", "description": "ID of the user requesting renewal." },
+        "userName": { "type": "string", "description": "Name of the user." },
+        "customerId": { "type": "string", "description": "Customer ID of the user." },
+        "date": { "type": "string", "format": "date", "description": "Date of the renewal transaction." },
+        "amount": { "type": "number", "description": "Amount paid for the renewal." },
+        "transactionType": { "type": "string", "description": "Method of payment (e.g., RTGS, UPI)." },
+        "status": { "type": "string", "enum": ["Pending", "Approved"], "description": "Status of the renewal request." },
+        "submittedAt": { "type": "string", "format": "date-time", "description": "Timestamp when the request was submitted." }
+      },
+      "required": ["id", "userId", "userName", "date", "amount", "transactionType", "status", "submittedAt"]
+    },
+    "Account": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Account",
+      "type": "object",
+      "description": "Represents a financial account, such as a customer, bank, or expense account.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the account." },
+        "name": { "type": "string", "description": "The name of the account." },
+        "type": { "type": "string", "enum": ["Customer", "Bank", "Expense"], "description": "The type of the account." },
+        "ownerId": { "type": "string", "description": "The ID of the user who owns this account." }
+      },
+      "required": ["id", "name", "type", "ownerId"]
+    },
+     "SystemStatus": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SystemStatus",
+      "type": "object",
+      "description": "Represents the global status of the application, such as maintenance mode.",
+      "properties": {
+        "isMaintenanceMode": {
+          "type": "boolean",
+          "description": "Indicates whether the system is in maintenance mode."
+        }
+      },
+      "required": ["isMaintenanceMode"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Uses path-based ownership for private user data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/animals/{animalId}",
+        "definition": {
+          "entityName": "Animal",
+          "schema": {
+            "$ref": "#/backend/entities/Animal"
+          },
+          "description": "Stores animal information for a specific user.",
+          "params": [
+            { "name": "userId", "description": "The unique identifier for the user." },
+            { "name": "animalId", "description": "The unique identifier for the animal."}
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/movements/{movementId}",
+        "definition": {
+          "entityName": "AnimalMovement",
+          "schema": {
+            "$ref": "#/backend/entities/AnimalMovement"
+          },
+          "description": "Stores the movement history of each animal for a specific user.",
+          "params": [
+            { "name": "userId", "description": "The unique identifier for the user." },
+            { "name": "movementId", "description": "The unique identifier for the animal movement record."}
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/financial_records/{financialRecordId}",
+        "definition": {
+          "entityName": "FinancialRecord",
+          "schema": {
+            "$ref": "#/backend/entities/FinancialRecord"
+          },
+          "description": "Stores financial records for a specific user.",
+          "params": [
+            { "name": "userId", "description": "The unique identifier for the user." },
+            { "name": "financialRecordId", "description": "The unique identifier for the financial record."}
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/milk_records/{milkRecordId}",
+        "definition": {
+          "entityName": "MilkRecord",
+          "schema": { "$ref": "#/backend/entities/MilkRecord" },
+          "description": "Stores milk production records for a specific user.",
+          "params": [
+            { "name": "userId", "description": "The unique ID of the user." },
+            { "name": "milkRecordId", "description": "The unique ID for the milk record." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": { "$ref": "#/backend/entities/Report" },
+          "description": "Stores generated reports for a specific user.",
+          "params": [
+            { "name": "userId", "description": "The unique ID of the user." },
+            { "name": "reportId", "description": "The unique ID for the report." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/accounts/{accountId}",
+        "definition": {
+            "entityName": "Account",
+            "schema": { "$ref": "#/backend/entities/Account" },
+            "description": "Stores user-defined financial accounts.",
+            "params": [
+                { "name": "userId", "description": "The unique ID of the user." },
+                { "name": "accountId", "description": "The unique ID for the account." }
+            ]
+        }
+      },
+      {
+        "path": "/amc_renewals/{renewalId}",
+        "definition": {
+            "entityName": "AmcRenewal",
+            "schema": { "$ref": "#/backend/entities/AmcRenewal" },
+            "description": "Stores user-submitted AMC renewal requests. Readable by admins, writable by the user who owns it.",
+            "params": [
+                { "name": "renewalId", "description": "The unique ID for the renewal request." }
+            ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection to store UIDs of admin users. The existence of a document indicates admin role.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/system/status",
+        "definition": {
+          "entityName": "SystemStatus",
+          "schema": { "$ref": "#/backend/entities/SystemStatus" },
+          "description": "A singleton document to store global system status, like maintenance mode. Publicly readable.",
+          "params": []
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the GauRakshak application by adopting a user-centric model where each user's data (animals, movements, financials, etc.) is nested within their own document. This enhances data privacy and simplifies security rules by leveraging path-based ownership. Top-level collections like 'amc_renewals' and 'roles_admin' are maintained for global operations and administrative functions. This structure ensures that users can only access their own data, while admins have broader permissions, creating a secure and scalable architecture."
+  }
+}
